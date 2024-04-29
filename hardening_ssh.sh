@@ -3,13 +3,17 @@
 ## INFO ##
 ## NOME.............: bloq_ssh.sh
 ## VERSÃO...........: 1.0
-## DESCRIÇÃO........: Hardening no arquivo ssh, permitindo acesso somente ao usuário cadastrado
+## DESCRIÇÃO........: Hardening no arquivo ssh, permitindo acesso somente ao usuário cadastrado,
+## cifras ajustadas no arquivo de configuração, site usasdo para testes https://www.sshaudit.com/
 ## DATA DA CRIAÇÃO..: 29/04/2024
 ## ESCRITO POR......: Bruno Lima
 ## E-MAIL...........: bruno@lc.tec.br
 ## DISTRO...........: Debian GNU/Linux 12
 ## LICENÇA..........: GPLv3
 ## Git Hub..........: https://github.com/bflima
+
+SSH_CONFIG=$(find /etc -iname sshd_config)
+SSH_PORT="10443"
 
 # Hardening ssh
 which /usr/sbin/sshd || { apt-update -y ; apt install openssh-server ; }
@@ -34,6 +38,8 @@ sed -i 's/^#MaxStartups.*/MaxStartups 10:30:100/'               "$SSH_CONFIG"
 grep -q "DebianBanner" "$SSH_CONFIG" || echo "DebianBanner no" >> "$SSH_CONFIG"
 
 which ssh-audit || apt-get install -y ssh-audit
+
+ssh-audit -p "$SSH_PORT" localhost
 
 SSH_HARDENIG=$(find /etc/ -iname sshd_config.d)
 cat > "$SSH_HARDENIG/90-hardening.conf" << EOF
