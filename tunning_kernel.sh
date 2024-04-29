@@ -131,4 +131,4 @@ net.ipv4.tcp_tw_reuse = 1
 EOF
 
 # Aplicar Hardening
-sysctl -p "$SYSCTL"
+sysctl -p
