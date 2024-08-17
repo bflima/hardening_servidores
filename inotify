@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+
+# Descomentar a linha abaixo para ativar debug
+# set -xeuo pipefail
+
+## INFO ##
+## NOME.............: inotify.sh
+## VERSÃO...........: 1.0
+## DESCRIÇÃO........: Instala serviço inotify
+## DATA DA CRIAÇÃO..: 27/07/2024
+## ESCRITO POR......: Bruno Lima
+## E-MAIL...........: bruno@lc.tec.br
+## DISTRO...........: Rocky GNU/Linux
+## VERSÃO HOMOLOGADA: 8 e 9 
+## LICENÇA..........: GPLv3
+## Git Hub..........: https://github.com/bflima
+## Documentação.....: https://github.com/kpatronas/curlify
+
+_CRIAR_UNIT()
+{
+  # Criar o serviço via systemd
+  # /etc/systemd/system/inotify.service
+  SERVICE='/etc/systemd/system/inotify.service'
+
+  [[ ! -f $SERVICE ]] &&
+  cat > "$SERVICE" << EOF
+[Unit]
+Description=Inotify Daemon
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/bin/bash $PWD${0/./}
+RestartSec=1
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+
+# Parametros de variáveis
+FILEPATH=$PWD
+EVENTS='create,delete,modify'
+TS='%d-%m-%Y_%H:%M:%S'
+INOTIFY_PARAMETERS=''
+
+INFO="
+Script sem argumento:
+Diretorio corrente com a opção recursiva ativada
+Eventos monitorados: criação | deleção | modificação
+Hora formato: dia-mês-ano_hora:minuto:segundo
+
+Parametros aceitos:
+-e|--events                 ex: create,delete,modify
+-p|--path                   ex: /tmp ou /etc/passwd
+-t|--ts                     ex: %d-%m-%Y_%H:%M:%S
+-i|--inotify_parameters     ex: -m | -d
+"
+
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    -e|--events)
+      EVENTS="$2"
+      shift
+      shift
+      ;;
+    -p|--path)
+      FILEPATH="$2"
+      shift
+      shift
+      ;;
+    -t|--ts)
+      TS="$2"
+      shift
+      shift
+      ;;
+    -i|--inotify_parameters)
+      INOTIFY_PARAMETERS="$2"
+      shift
+      shift
+      ;;
+   -h|--help)
+      clear
+      echo "$INFO"
+      exit 0
+      ;;
+  esac
+done
+
+# Limpar prompt
+clear
+
+# Criar serviço
+_CRIAR_UNIT
+
+# realizar envio para o arquivo de log do sistema
+# [ "$(pidof -x "$(basename "$0")")" != $$ ] && exit
+inotifywait "$INOTIFY_PARAMETERS" --timefmt "$TS" --format "{'data':'%T','path':'%w','file':'%f','event':'%e'}" -m -r -e "$EVENTS" "$FILEPATH" | logger
